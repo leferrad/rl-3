@@ -6,6 +6,7 @@
 __author__ = 'leferrad'
 
 from rl3.environment.cube import Cube
+from rl3.agent.feature import FeatureTransformer
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -46,7 +47,7 @@ def play_one(model, env, eps, gamma, max_iters=1000):
         # Make a movement
         action = model.sample_action(observation, eps)
         prev_observation = observation
-        observation, reward, solved, info = env.step(action)
+        observation, reward, solved = env.take_action(action)
 
         total_reward += reward
 
@@ -78,6 +79,9 @@ class CubeEnvironment(object):
     def render(self, flat=False):
         self.cube.render(flat=flat)
 
+    def randomize(self, n=20):
+        self.cube.randomize(number=n)
+
 if __name__ == "__main__":
     """
     Functional testing.
@@ -90,12 +94,22 @@ if __name__ == "__main__":
     print "---o- ---------------------------- -o---"
     print "---o- Taking all supported actions -o---"
     print "---o- ---------------------------- -o---"
-    print "State: %s" % str(ce.cube.get_state())
+    state = ce.cube.get_state()
+    print "State: %s" % str(state)
+    lbp_code = FeatureTransformer.lbp_cube(state)
+    print "LBP code: %s" % str(lbp_code)
+    lbp_hist = FeatureTransformer.hist_lbp_code(lbp_code)
+    print "LBP hist: %s" % str(lbp_hist)
     print "It's solved!" if ce.is_solved() else "Not solved!"
     for a in actions_available:
         print "Taking the following action: %s" % a
         ce.take_action(a)
-        print "State: %s" % str(ce.cube.get_state())
+        state = ce.cube.get_state()
+        print "State: %s" % str(state)
+        lbp_code = FeatureTransformer.lbp_cube(state)
+        print "LBP code: %s" % str(lbp_code)
+        lbp_hist = FeatureTransformer.hist_lbp_code(lbp_code)
+        print "LBP hist: %s" % str(lbp_hist)
         print "It's solved!" if ce.is_solved() else "Not solved!"
         #ce.render(flat=False)#.savefig("test%02d.png" % m, dpi=865 / c.N)
 
