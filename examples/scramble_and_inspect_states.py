@@ -6,7 +6,7 @@
 __author__ = 'leferrad'
 
 from rl3.environment.base import CubeEnvironment, actions_available
-from rl3.agent.feature import FeatureTransformer
+from rl3.agent.feature import LBPFeatureTransformer
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     """
     Let's take some random actions for a couple of iterations to figure out the space of possible states
     """
-    n_random_actions = 1000
+    n_random_actions = 100
     iters = 20
     seen_states = {}
 
@@ -28,24 +28,24 @@ if __name__ == "__main__":
         print "---o- ------------------------ -o---"
         print "---o- Taking %i random actions -o---" % n_random_actions
         print "---o- ------------------------ -o---"
+        print "Using seed=%i" % seed
         ce = CubeEnvironment(n=3, seed=seed, whiteplastic=False)
-
         for m in range(n_random_actions):
             action = np.random.choice(actions_available.keys())
             print "Taking the following action: %s" % action
             ce.take_action(action)
             state = ce.cube.get_state()
             print "State: %s" % str(state)
-            lbp_code = FeatureTransformer.lbp_cube(state)
+            lbp_code = LBPFeatureTransformer.transform(state)
             print "LBP code: %s" % str(lbp_code)
-            lbp_hist = FeatureTransformer.hist_lbp_code(lbp_code)
+            lbp_hist = LBPFeatureTransformer.hist_lbp_code(lbp_code)
             print "LBP hist: %s" % str(lbp_hist)
             # Adding state to the set
-            lbp_code = tuple(lbp_code)
-            if lbp_code in seen_states:
-                seen_states[lbp_code] += 1
+            lbp_hist = tuple(lbp_hist)
+            if lbp_hist in seen_states:
+                seen_states[lbp_hist] += 1
             else:
-                seen_states[lbp_code] = 0
+                seen_states[lbp_hist] = 1
 
             # Just to discover some interesting patterns...
             if ce.is_solved():
