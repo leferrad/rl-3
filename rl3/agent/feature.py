@@ -7,21 +7,14 @@ __author__ = 'leferrad'
 
 import numpy as np
 
-class FeatureTransformer(object):
-    def __init__(self, env, n_components=100):
-        self.env = env
 
-    def transform(self, x):
-        # TODO: quizas medir distancias de cubies respecto al correspond cubo central (que compone la solucion)
-        pass
-
-    def distance(self, state):
-        pass
-        #dists = []
-        #for i in range(len(state)):
+class LBPFeatureTransformer(object):
+    def __init__(self):
+        self.dimensions = 6
+        self.n_points = 9
 
     @staticmethod
-    def lbp_cube(state):
+    def transform(state, normalize=False):
         state = np.array(state).reshape(6, 9).astype(np.int32)
         codes = []
         for face in state:
@@ -30,6 +23,9 @@ class FeatureTransformer(object):
             code = [b == center for b in borders]  # list of booleans
             code = int(''.join(map(lambda c: str(int(c)), code)), 2)  # convert it to an integer number
             #code = int(''.join(reversed(sorted(map(lambda c: str(int(c)), code)))), 2)  # convert it to an integer number
+            if normalize is True:
+                code /= 255.0  # Normalize to [0,1] range
+
             codes.append(code)
         return codes
 
