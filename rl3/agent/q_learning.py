@@ -52,9 +52,9 @@ class QubeTabularAgent(object):
 
 
 class SGDRegressor:
-    def __init__(self, D):
+    def __init__(self, D, lr=1e-3):
         self.w = np.random.randn(D) / np.sqrt(D)
-        self.lr = 10e-2
+        self.lr = lr
 
     def partial_fit(self, X, Y):
         if isinstance(X, np.ndarray) is False:
@@ -123,3 +123,32 @@ class QubePARAgent(object):
             actions = self.models.keys()
             G = [self.predict_from_action(s, a) for a in self.models.keys()]
             return actions[np.argmax(G)]
+
+
+def play_one(model, env, eps, gamma, max_iters=1000):
+    env.actions_taken = []  # Reset actions taken on the scramble stage
+    observation = env.get_state()
+
+    solved = env.is_solved()
+    total_reward = 0
+    iters = 0
+
+    while not solved and iters < max_iters:
+        # Make a movement
+        action = model.sample_action(observation, eps)
+        prev_observation = observation
+        observation, reward, solved = env.take_action(action)
+        total_reward += reward
+
+        if env.is_solved():
+            print "WOW! The cube is solved! Algorithm followed: %s" % str(env.actions_taken)
+
+        # Update the model
+        next_state = model.predict(observation)
+        # assert(len(next_state.shape) == 1)
+        G = reward + gamma*np.max(next_state)
+        model.update(prev_observation, action, G)
+
+        iters += 1
+
+    return total_reward

@@ -6,8 +6,8 @@
 __author__ = 'leferrad'
 
 from rl3.agent.feature import LBPFeatureTransformer
-from rl3.agent.q_learning import QubeRegAgent, QubeTabularAgent
-from rl3.environment.base import CubeEnvironment, play_one
+from rl3.agent.q_learning import QubeRegAgent, QubeTabularAgent, play_one
+from rl3.environment.base import CubeEnvironment
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,8 +18,8 @@ if __name__ == '__main__':
     print "Using seed=%i" % seed
     ce = CubeEnvironment(n=3, seed=seed, whiteplastic=False, reward_function=reward_function)
     ce.randomize(1)
-    model = QubeTabularAgent(ce)
-    #model = QubeRegAgent(ce, LBPFeatureTransformer())
+    #model = QubeTabularAgent(ce)
+    model = QubeRegAgent(ce, LBPFeatureTransformer())
 
 
     # TODO: crear un mecanismo de attachments para el env (por ej, para monitorear algoritmos seguidos en cada iter)

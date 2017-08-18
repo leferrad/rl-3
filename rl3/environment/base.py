@@ -24,6 +24,7 @@ actions_available = {"U": lambda c: c.move("U", 0, 1),
                      "B": lambda c: c.move("B", 0, 1),
                      "B'": lambda c: c.move("B", 0, -1)}
 
+
 def is_inverse_action(a1, a2):
     is_inverse = False
     if a1 != a2 and any([a1.replace("'", "") == a2, a2.replace("'", "") == a1]):
@@ -61,42 +62,13 @@ def lbph_reward(cube):
             state = cube.get_state()
             lbp_code = LBPFeatureTransformer.transform(state, normalize=False)
             hist_lbp = LBPFeatureTransformer.hist_lbp_code(lbp_code)
-            coefficients = [-1.0, 0.0, 0.0, 1.0, 2.0]
+            coefficients = [-2.0, -1.0, 0.0, 1.0, 2.0]
             reward = sum([c * h for (c, h) in zip(coefficients, hist_lbp)])
     return reward
 
 
 rewards_available = {'simple': simple_reward,
                      'lbph': lbph_reward}
-
-
-def play_one(model, env, eps, gamma, max_iters=1000):
-    #env.randomize(20)  # Make 20 random movements to scramble the cube
-    observation = env.get_state()
-
-    solved = env.is_solved()
-    total_reward = 0
-    iters = 0
-
-    while not solved and iters < max_iters:
-        # Make a movement
-        action = model.sample_action(observation, eps)
-        prev_observation = observation
-        observation, reward, solved = env.take_action(action)
-        total_reward += reward
-
-        if env.is_solved():
-            print "WOW! The cube is solved! Algorithm followed: %s" % str(env.actions_taken)
-
-        # Update the model
-        next_state = model.predict(observation)
-        # assert(len(next_state.shape) == 1)
-        G = reward + gamma*np.max(next_state)
-        model.update(prev_observation, action, G)
-
-        iters += 1
-
-    return total_reward
 
 
 class CubeEnvironment(object):
@@ -127,8 +99,13 @@ class CubeEnvironment(object):
     def render(self, flat=False):
         self.cube.render(flat=flat)
 
-    def randomize(self, n=20):
+    def randomize_old(self, n=20):
         self.cube.randomize(number=n)
+
+    def randomize(self, n=20):
+        for i in range(n):
+            action = self.sample_action()
+            self.take_action(action)
 
 if __name__ == "__main__":
     """
