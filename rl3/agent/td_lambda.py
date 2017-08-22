@@ -8,6 +8,7 @@ __author__ = 'leferrad'
 from rl3.agent.feature import LBPFeatureTransformer
 
 from sklearn.linear_model import PassiveAggressiveRegressor
+from bloom_filter import BloomFilter
 import numpy as np
 
 
@@ -109,6 +110,60 @@ class QubeRegAgent(object):
             actions = self.models.keys()
             G = [self.predict_from_action(s, a) for a in self.models.keys()]
             return actions[np.argmax(G)]
+
+class QubeBloomAgent(object):
+    def __init__(self, env, feature_transformer):
+        self.env = env
+        self.models = {}
+        self.feature_transformer = feature_transformer
+        for a in env.actions_available:
+            self.models[a] = SGDRegressor(feature_transformer.dimensions)
+        self.eligibilities = np.zeros((env.n_actions, feature_transformer.dimensions))
+        self.bloom_states = BloomFilter(max_elements=256**2)
+
+    def reset(self):
+        self.eligibilities = np.zeros_like(self.eligibilities)
+
+    def predict_from_action(self, s, a):
+        X = self.feature_transformer.transform(s, normalize=True)
+        return self.models[a].predict(X)
+
+    def predict(self, s):
+        return np.array([self.predict_from_action(s, a) for a in self.models.keys()])
+
+    def update(self, s, a, G, gamma=0.99, lambda_=0.7):
+        X = self.feature_transformer.transform(s, normalize=True)
+
+        # slower
+        # for action in range(self.env.action_space.n):
+        #   if action != a:
+        #     self.eligibilities[action] *= gamma*lambda_
+        #   else:
+        #     self.eligibilities[a] = grad + gamma*lambda_*self.eligibilities[a]
+
+        self.eligibilities *= gamma*lambda_
+        index_a = self.env.actions_available.keys().index(a)
+        self.eligibilities[index_a] += X
+        self.models[a].partial_fit(X, [G], self.eligibilities[index_a])
+
+    def sample_action(self, s, eps):
+        x = tuple(self.feature_transformer.transform(s, normalize=False))
+        if x in self.bloom_states:
+            # Maybe it's a seen state
+            actions = self.models.keys()
+            G = [self.predict_from_action(s, a) for a in self.models.keys()]
+            if np.max(G) > 0.0:
+                # It's a good state to exploit
+                self.bloom_states.add(x)
+                return actions[np.argmax(G)]
+            else:
+                # It's not important, so we can explore
+                self.bloom_states.add(x)
+                return self.env.sample_action()
+        else:
+            # It's not a seen state, so we can explore
+            self.bloom_states.add(x)
+            return self.env.sample_action()
 
 
 class QubePARAgent(object):
