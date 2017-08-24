@@ -62,8 +62,9 @@ def lbph_reward(cube):
             state = cube.get_state()
             lbp_code = LBPFeatureTransformer.transform(state, normalize=False)
             hist_lbp = LBPFeatureTransformer.hist_lbp_code(lbp_code)
-            coefficients = [-2.0, -1.0, 0.0, 1.0, 2.0]
+            coefficients = [-1.0, -0.5, 0.0, 0.5, 1.0]
             reward = sum([c * h for (c, h) in zip(coefficients, hist_lbp)])
+            reward += -0.5  # due to take a step
     return reward
 
 
