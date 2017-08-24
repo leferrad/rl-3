@@ -183,7 +183,12 @@ class QubePARAgent(object):
 
     def predict_from_action(self, s, a):
         X = self.feature_transformer.transform(s, normalize=True)
-        return self.models[a].predict(X)
+        try:
+            y = self.models[a].predict(X)
+        except:
+            y = 0.0
+
+        return y
 
     def update(self, s, a, G, gamma=0.99, lambda_=0.7):
         X = self.feature_transformer.transform(s, normalize=True)
@@ -196,8 +201,9 @@ class QubePARAgent(object):
         #     self.eligibilities[a] = grad + gamma*lambda_*self.eligibilities[a]
 
         self.eligibilities *= gamma*lambda_
-        self.eligibilities[a] += X
-        self.models[a].partial_fit(X, [G], self.eligibilities[a])
+        index_a = self.env.actions_available.keys().index(a)
+        self.eligibilities[index_a] += X
+        self.models[a].partial_fit([X], [G])
 
     def sample_action(self, s, eps):
         if np.random.random() < eps:
@@ -206,6 +212,51 @@ class QubePARAgent(object):
             actions = self.models.keys()
             G = [self.predict_from_action(s, a) for a in self.models.keys()]
             return actions[np.argmax(G)]
+
+
+class QubeBloomPARAgent(object):
+    def __init__(self, env, feature_transformer):
+        self.env = env
+        self.models = {}
+        self.feature_transformer = feature_transformer
+        for a in env.actions_available:
+            self.models[a] = PassiveAggressiveRegressor(C=1.0, fit_intercept=True, shuffle=False)
+        self.bloom_states = BloomFilter(max_elements=256**2)
+
+    def predict(self, s):
+        return np.array([self.predict_from_action(s, a) for a in self.models.keys()])
+
+    def predict_from_action(self, s, a):
+        X = self.feature_transformer.transform(s, normalize=True)
+        try:
+            y = self.models[a].predict(X)
+        except:
+            y = 0.0
+
+        return y
+
+    def update(self, s, a, G, gamma=0.99, lambda_=0.7):
+        X = self.feature_transformer.transform(s, normalize=True)
+        self.models[a].partial_fit(np.array([X]), np.array([G]))
+
+    def sample_action(self, s, eps):
+        x = tuple(self.feature_transformer.transform(s, normalize=False))
+        if x in self.bloom_states:
+            # Maybe it's a seen state
+            actions = self.models.keys()
+            G = [self.predict_from_action(s, a) for a in self.models.keys()]
+            if np.max(G) > 0.0:
+                # It's a good state to exploit
+                self.bloom_states.add(x)
+                return actions[np.argmax(G)]
+            else:
+                # It's not important, so we can explore
+                self.bloom_states.add(x)
+                return self.env.sample_action()
+        else:
+            # It's not a seen state, so we can explore
+            self.bloom_states.add(x)
+            return self.env.sample_action()
 
 
 def play_one(model, env, eps, gamma=0.99, lambda_=0.7, max_iters=1000):

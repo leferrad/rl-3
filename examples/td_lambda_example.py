@@ -6,12 +6,15 @@
 __author__ = 'leferrad'
 
 from rl3.agent.feature import LBPFeatureTransformer
-from rl3.agent.td_lambda import QubeRegAgent, QubeTabularAgent, QubeBloomAgent, play_one
+from rl3.agent.td_lambda import QubeRegAgent, QubeTabularAgent, QubeBloomAgent, QubeBloomPARAgent, play_one
 from rl3.environment.base import CubeEnvironment
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+# TODO: sacar el update si el bloom da true y el reward es positivo (i.e. no actualices si no es necesario)
+# TODO: se podria tener un modelo aparte que solo se actualice cuando vemos rewards positivos, a modo memoria del buen pasado
+# --> Ver como toman replays en DQN
 
 def max_movements(n_iter, max_iters, total_movements=10):
     max_movs_for_random = (n_iter * total_movements) / int(max_iters) + 1
@@ -28,14 +31,15 @@ if __name__ == '__main__':
     ce.randomize(1)
     #model = QubeTabularAgent(ce)
     #model = QubeRegAgent(ce, LBPFeatureTransformer())
-    model = QubeBloomAgent(ce, LBPFeatureTransformer())
+    model = QubeBloomPARAgent(ce, LBPFeatureTransformer())
+    #model = QubeBloomAgent(ce, LBPFeatureTransformer())
 
 
     # TODO: crear un mecanismo de attachments para el env (por ej, para monitorear algoritmos seguidos en cada iter)
 
     gamma = 0.99
     lambda_ = 0.3  # default: 0.7
-    N = 5000
+    N = 4000
     M = 6  # Total movements
     max_movements_for_cur_iter, max_movements_for_random = 0, 0
     totalrewards = np.empty(N)
