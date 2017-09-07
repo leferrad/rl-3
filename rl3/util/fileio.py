@@ -9,7 +9,7 @@ import logging
 import logging.handlers
 
 
-def get_logger(name='pliforto', level=logging.DEBUG):
+def get_logger(name='rl3', level=logging.DEBUG):
     """
     Function to obtain a normal logger
 
