@@ -25,46 +25,57 @@ actions_available = {"U": lambda c: c.move("U", 0, 1),
                      "B'": lambda c: c.move("B", 0, -1)}
 
 
-def is_inverse_action(a1, a2):
-    is_inverse = False
+def are_inverse_actions(a1, a2):
+    are_inverse = False
     if a1 != a2 and any([a1.replace("'", "") == a2, a2.replace("'", "") == a1]):
-        is_inverse = True
-    return is_inverse
+        are_inverse = True
+    return are_inverse
 
 
-def simple_reward_2(cube, reward_positive=50, reward_negative=-1):
+def simple_reward_2(cube, reward_positive=100, reward_negative=-1):
     reward = reward_negative
     if cube.is_solved():
         reward = reward_positive
     return reward
 
 
-def simple_reward(cube, reward_positive=50, reward_negative=-1):
+def simple_reward(cube, reward_positive=100, reward_negative=-1):
     if cube.is_solved():
         reward = reward_positive
     else:
-        actions_taken = cube.actions_taken[-2:]
-        if len(actions_taken) == 2 and is_inverse_action(actions_taken[0], actions_taken[1]):
+        actions_taken = cube.actions_taken
+        # punish to avoid regrets (i.e. agent moving back and forth between two states)
+        if len(actions_taken) >= 2 and are_inverse_actions(actions_taken[-2], actions_taken[-1]):
+            reward = 10 * reward_negative
+        # punish to avoid loops (i.e. agent doing a complete loop up to the same state,
+        #                        or making three steps that are equal to make just a single inverse step)
+        elif len(actions_taken) >= 3 and len(set(actions_taken[-3:])) == 1:
             reward = 10 * reward_negative
         else:
-            reward = reward_negative
+            reward = reward_negative  # due to take a step
     return reward
 
 
-def lbph_reward(cube):
+def lbph_reward(cube, reward_positive=100, reward_negative=-1):
     if cube.is_solved():
-        reward = 50
+        reward = reward_positive
     else:
-        actions_taken = cube.actions_taken[-2:]
-        if len(actions_taken) == 2 and is_inverse_action(actions_taken[0], actions_taken[1]):
-            reward = -10
+        actions_taken = cube.actions_taken
+        # punish to avoid regrets (i.e. agent moving back and forth between two states)
+        if len(actions_taken) >= 2 and are_inverse_actions(actions_taken[-2], actions_taken[-1]):
+            reward = 10 * reward_negative
+        # punish to avoid loops (i.e. agent doing a complete loop up to the same state,
+        #                        or making three steps that are equal to make just a single inverse step)
+        elif len(actions_taken) >= 3 and len(set(actions_taken[-3:])) == 1:
+            reward = 10 * reward_negative
         else:
             state = cube.get_state()
             lbp_code = LBPFeatureTransformer.transform(state, normalize=False)
             hist_lbp = LBPFeatureTransformer.hist_lbp_code(lbp_code)
-            coefficients = [-1.0, -0.5, 0.0, 0.5, 1.0]
+            coefficients = np.linspace(-1.0, 1.0, len(hist_lbp))
+            #coefficients[coefficients > 0.0] = 0.0
             reward = sum([c * h for (c, h) in zip(coefficients, hist_lbp)])
-            reward += -0.5  # due to take a step
+            reward += reward_negative  # due to take a step
     return reward
 
 
