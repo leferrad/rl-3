@@ -5,7 +5,8 @@
 
 __author__ = 'leferrad'
 
-from rl3.agent.td_lambda import *
+#from rl3.agent.td_lambda import *
+from rl3.agent.elm import *
 from rl3.agent.feature import LBPFeatureTransformer
 from rl3.environment.base import CubeEnvironment
 from rl3.util.plot import plot_moving_avg
@@ -43,12 +44,11 @@ if __name__ == '__main__':
 
 
     # TODO: crear un mecanismo de attachments para el env (por ej, para monitorear algoritmos seguidos en cada iter)
-    # TODO: experience replay, pero mayormente de los estados que llevaron a un reward positivo
 
     gamma = 0.99
     lambda_ = 0.3  # default: 0.7
-    N = 5000
-    M = 10  # Total movements
+    N = 20000
+    M = 8  # Total movements
     max_movements_for_cur_iter, max_movements_for_random = 0, 0
     totalrewards = np.empty(N)
     for n in range(N):
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         totalreward = play_one(model, ce, eps, gamma, lambda_=lambda_, max_iters=max_movements_for_cur_iter)  # max_iters=100
         totalrewards[n] = totalreward
         if n % 100 == 0:
-            print "Episode:", n, "total reward:", totalreward, "eps:", eps, "avg reward (last 100):", \
+            print "Episode:", n, "total reward:", totalreward, "avg reward (last 100):", \
                 totalrewards[max(0, n-100):(n+1)].mean()
         # print "Algorithm followed: %s" % ce.actions_taken
         #ce.render(flat=False)#.savefig("test%02d.png" % m, dpi=865 / c.N)
